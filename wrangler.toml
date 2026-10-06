@@ -1,0 +1,8 @@
+name = "honda-genuine-parts"
+compatibility_date = "2024-09-01"
+pages_build_output_dir = "."
+
+[[d1_databases]]
+binding = "DB"
+database_name = "honda-db"
+database_id = "52601f6a-1615-4465-81f6-0d9d83818ff0"

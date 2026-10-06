@@ -1,0 +1,590 @@
+<?php
+require_once __DIR__ . '/config.php';
+$pdo = getDBConnection();
+?>
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HONDA GENUINE PARTS - ระบบค้นหาและสั่งซื้ออะไหล่แท้ฮอนด้า (รถยนต์ & รถจักรยานยนต์)</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="https://accounts.google.com/gsi/client" async defer onload="window.initializeGoogleSignIn && window.initializeGoogleSignIn()"></script>
+</head>
+<body>
+
+    <!-- Top Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="#" class="navbar-brand" id="navCatalog">
+                <span class="logo-badge">GENUINE</span>
+                <span><span class="brand-honda">HONDA</span> GENUINE PARTS</span>
+            </a>
+
+            <ul class="nav-links">
+                <li><a href="#" class="nav-link active" id="navCatalog">📦 แคตตาล็อกอะไหล่</a></li>
+                <li><a href="#" class="nav-link" id="navHistory">📜 ประวัติการสั่งซื้อ</a></li>
+                <li><a href="#" class="nav-link" id="navAdmin">🔑 ระบบแอดมิน</a></li>
+                <li>
+                    <a href="#" class="nav-link" id="cartNavBtn">
+                        🛒 ตะกร้าสินค้า
+                        <span class="cart-badge" id="cartBadge" style="display:none;">0</span>
+                    </a>
+                </li>
+                <li id="userNavContainer">
+                    <button class="btn-auth" onclick="openModal('loginModal')">เข้าสู่ระบบ / สมัครสมาชิก</button>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="main-content">
+
+        <!-- Hero & Promotion Banner -->
+        <section class="hero-banner" id="heroBanner">
+            <h1 class="hero-title">ศูนย์รวมอะไหล่แท้ <span class="brand-honda">HONDA</span> (รถยนต์ & รถจักรยานยนต์)</h1>
+            <p class="hero-subtitle">มั่นใจทุกการขับขี่ เลือกใช้อะไหล่แท้มาตรฐานโรงงานฮอนด้า ตรวจสอบได้ 100%</p>
+            
+            <div class="promo-badge-box" id="heroPromoBox">
+                🎁 พิเศษสำหรับสมาชิก: เมื่อสั่งซื้อครบทุกๆ 10 ครั้ง (ครั้งที่ 10, 20, 30...) รับส่วนลด 5% อัตโนมัติในบิลนั้น!
+            </div>
+        </section>
+
+        <!-- Catalog & Real-time Search Section -->
+        <section id="catalogSection">
+            <div class="search-section">
+                <div class="search-row">
+                    <div class="search-input-group">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="searchInput" class="search-input" placeholder="พิมพ์ชื่ออะไหล่ หรือ รหัสสินค้า เพื่อค้นหาแบบ Real-time (เช่น 0W-20, ผ้าเบรก, Wave, PCX)...">
+                    </div>
+                    <div class="search-count" id="searchCount">กำลังโหลดรายการอะไหล่...</div>
+                </div>
+
+                <!-- Category Selector Filter Buttons -->
+                <div class="category-filter-box">
+                    <span class="category-filter-label">เลือกประเภทรถ:</span>
+                    <button class="category-btn active" data-category="all">🌐 อะไหล่ทั้งหมด</button>
+                    <button class="category-btn" data-category="car">🚗 อะไหล่รถยนต์</button>
+                    <button class="category-btn" data-category="motorcycle">🛵 อะไหล่รถจักรยานยนต์</button>
+                </div>
+            </div>
+
+            <div class="section-title-box">
+                <h2 class="section-title" id="catalogTitle">รายการอะไหล่แท้ <span class="brand-honda">HONDA</span></h2>
+            </div>
+
+            <div class="parts-grid" id="partsGrid">
+                <!-- Part Cards loaded dynamically by app.js -->
+            </div>
+        </section>
+
+        <!-- Order History Section (Split View) -->
+        <section id="historySection" style="display:none;">
+            <div class="section-title-box">
+                <h2 class="section-title">ประวัติการสั่งซื้อ (Order History)</h2>
+            </div>
+
+            <div class="split-view-container">
+                <!-- Left Pane: Bill List -->
+                <div class="split-left-pane">
+                    <div class="split-left-header">
+                        <span>📋 รายการบิลสั่งซื้อทั้งหมด</span>
+                    </div>
+                    <div class="order-history-list" id="splitOrderList">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- Right Pane: Bill Detail -->
+                <div class="split-right-pane" id="splitOrderDetail">
+                    <!-- Selected Order Details loaded dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Admin System Section -->
+        <section id="adminSection" style="display:none;">
+            <div class="section-title-box">
+                <h2 class="section-title">ระบบผู้ดูแลระบบ (Admin Dashboard)</h2>
+            </div>
+
+            <div class="admin-tab-nav">
+                <button class="admin-tab-btn active" id="adminTabParts">⚙️ จัดการข้อมูลอะไหล่</button>
+                <button class="admin-tab-btn" id="adminTabOrders">📊 ตรวจสอบการสั่งซื้อทั้งหมด</button>
+                <button class="admin-tab-btn" id="adminTabUsers">👥 จัดการข้อมูลสมาชิก</button>
+                <button class="admin-tab-btn" id="adminTabBot">🤖 ตั้งค่าแชทบอต AI</button>
+            </div>
+
+            <!-- Admin Sub-tab 1: Part Management -->
+            <div id="adminPartsSubSection">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                    <h3 style="font-weight:700;">แคตตาล็อกอะไหล่ในระบบ</h3>
+                    <button class="btn-primary" id="btnAddPartModal">➕ เพิ่มรายการอะไหล่ใหม่</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>รูปภาพ</th>
+                                <th>หมวดหมู่</th>
+                                <th>รหัสอะไหล่</th>
+                                <th>ชื่ออะไหล่</th>
+                                <th>ราคา (บาท)</th>
+                                <th>จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminPartsTbody">
+                            <!-- Loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Admin Sub-tab 2: Order Monitoring -->
+            <div id="adminOrdersSubSection" style="display:none;">
+                <div style="background:#FFF; padding:1.2rem; border-radius:10px; box-shadow:var(--honda-shadow); margin-bottom:1.5rem; display:flex; gap:1rem; flex-wrap:wrap; align-items:flex-end;">
+                    <div style="flex:1; min-width:200px;">
+                        <label class="form-label">ค้นหาตามเบอร์โทร / ชื่อ / เลขบิล</label>
+                        <input type="text" id="adminOrderSearch" class="form-control" placeholder="พิมพ์เบอร์โทรศัพท์ลูกค้า...">
+                    </div>
+                    <div style="width:170px;">
+                        <label class="form-label">ตั้งแต่วันที่</label>
+                        <input type="date" id="adminOrderDateStart" class="form-control">
+                    </div>
+                    <div style="width:170px;">
+                        <label class="form-label">ถึงวันที่</label>
+                        <input type="date" id="adminOrderDateEnd" class="form-control">
+                    </div>
+                    <button class="btn-primary" id="btnFilterAdminOrders">🔍 ค้นหา</button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>เลขที่บิล</th>
+                                <th>วันที่สั่งซื้อ</th>
+                                <th>ลูกค้า (เบอร์โทร)</th>
+                                <th class="text-right">ราคารวม</th>
+                                <th class="text-right">ส่วนลด</th>
+                                <th class="text-right">ยอดสุทธิ</th>
+                                <th class="text-center">ดูรายละเอียด</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminOrdersTbody">
+                            <!-- Loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Admin Sub-tab 3: User Management -->
+            <div id="adminUsersSubSection" style="display:none;">
+                <h3 style="font-weight:700; margin-bottom:1rem;">รายชื่อสมาชิกและประวัติจำนวนครั้งที่สั่งซื้อ</h3>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>รหัสสมาชิก</th>
+                                <th>ชื่อ-นามสกุล / ที่อยู่</th>
+                                <th>เบอร์โทรศัพท์ (Username)</th>
+                                <th class="text-center">จำนวนครั้งที่สั่งซื้อ (Order Count)</th>
+                                <th>วันที่สมัคร</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminUsersTbody">
+                            <!-- Loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Admin Sub-tab 4: Chatbot Settings -->
+            <div id="adminBotSubSection" style="display:none;">
+                <div style="background:#FFF; padding:1.5rem; border-radius:10px; box-shadow:var(--honda-shadow); max-width:850px; margin:0 auto;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.2rem; border-bottom:1px solid var(--honda-gray-border); padding-bottom:0.8rem;">
+                        <div>
+                            <h3 style="font-weight:700; color:var(--honda-dark);">🤖 ตั้งค่าแชทบอต AI ประจำศูนย์ HONDA</h3>
+                            <p style="font-size:0.88rem; color:var(--honda-text-muted); margin-top:0.2rem;">เลือก AI Provider (Gemini, OpenAI, Cloudflare Workers AI) และกรอก API Key สำหรับให้บอตตอบคำถามลูกค้า</p>
+                        </div>
+                        <span class="logo-badge" style="background:var(--honda-red); color:#fff; padding:0.25rem 0.6rem; border-radius:4px; font-size:0.75rem; font-weight:700;">AI SETTINGS</span>
+                    </div>
+
+                    <form id="botSettingsForm">
+                        <div class="form-group">
+                            <label class="form-label" style="font-weight:600;">เลือก AI Provider หลักในการให้บริการ</label>
+                            <select id="botAiProvider" class="form-control" style="font-size:1rem; font-weight:600; padding:0.6rem 0.9rem;">
+                                <option value="gemini">✨ Google Gemini API (แนะนำ - แม่นยำ & ฟรีโควต้า)</option>
+                                <option value="openai">🧠 OpenAI (ChatGPT / GPT-4o-mini)</option>
+                                <option value="cloudflare">⚡ Cloudflare Workers AI (Llama 3.1 / Serverless)</option>
+                            </select>
+                        </div>
+
+                        <!-- Provider 1: Gemini -->
+                        <div class="bot-provider-card" id="providerCardGemini" style="background:#F9FAFB; border:1px solid #E5E7EB; border-radius:8px; padding:1.2rem; margin-bottom:1.2rem;">
+                            <h4 style="font-weight:700; color:#1F2937; margin-bottom:0.5rem; display:flex; align-items:center; gap:0.4rem;">
+                                <span>✨ Google Gemini Settings</span>
+                            </h4>
+                            <p style="font-size:0.82rem; color:#6B7280; margin-bottom:0.8rem;">
+                                ขอ API Key ฟรีได้จาก <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--honda-red); text-decoration:underline;">Google AI Studio</a>
+                            </p>
+                            <div class="form-group">
+                                <label class="form-label">Gemini API Key</label>
+                                <div style="position:relative;">
+                                    <input type="password" id="geminiApiKey" class="form-control" placeholder="AIzaSy..." autocomplete="off">
+                                    <button type="button" class="btn-toggle-key" onclick="toggleKeyVisibility('geminiApiKey')" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:#6B7280;">👁️</button>
+                                </div>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label class="form-label">โมเดล (Model Name)</label>
+                                <select id="geminiModel" class="form-control">
+                                    <option value="gemini-1.5-flash">gemini-1.5-flash (เร็ว ตอบสนองไว แนะนำ)</option>
+                                    <option value="gemini-1.5-pro">gemini-1.5-pro (ตอบละเอียด วิเคราะห์ลึก)</option>
+                                    <option value="gemini-2.0-flash-exp">gemini-2.0-flash-exp (เวอร์ชันใหม่)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Provider 2: OpenAI -->
+                        <div class="bot-provider-card" id="providerCardOpenai" style="background:#F9FAFB; border:1px solid #E5E7EB; border-radius:8px; padding:1.2rem; margin-bottom:1.2rem; display:none;">
+                            <h4 style="font-weight:700; color:#1F2937; margin-bottom:0.5rem; display:flex; align-items:center; gap:0.4rem;">
+                                <span>🧠 OpenAI Settings</span>
+                            </h4>
+                            <p style="font-size:0.82rem; color:#6B7280; margin-bottom:0.8rem;">
+                                ขอ API Key ได้จาก <a href="https://platform.openai.com/api-keys" target="_blank" style="color:var(--honda-red); text-decoration:underline;">OpenAI Platform</a>
+                            </p>
+                            <div class="form-group">
+                                <label class="form-label">OpenAI API Key</label>
+                                <div style="position:relative;">
+                                    <input type="password" id="openaiApiKey" class="form-control" placeholder="sk-proj-..." autocomplete="off">
+                                    <button type="button" class="btn-toggle-key" onclick="toggleKeyVisibility('openaiApiKey')" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:#6B7280;">👁️</button>
+                                </div>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label class="form-label">โมเดล (Model Name)</label>
+                                <select id="openaiModel" class="form-control">
+                                    <option value="gpt-4o-mini">gpt-4o-mini (คุ้มค่า รวดเร็ว แนะนำ)</option>
+                                    <option value="gpt-4o">gpt-4o (ฉลาดและแม่นยำสูง)</option>
+                                    <option value="gpt-3.5-turbo">gpt-3.5-turbo (มาตรฐาน)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Provider 3: Cloudflare Workers AI -->
+                        <div class="bot-provider-card" id="providerCardCloudflare" style="background:#F9FAFB; border:1px solid #E5E7EB; border-radius:8px; padding:1.2rem; margin-bottom:1.2rem; display:none;">
+                            <h4 style="font-weight:700; color:#1F2937; margin-bottom:0.5rem; display:flex; align-items:center; gap:0.4rem;">
+                                <span>⚡ Cloudflare Workers AI Settings</span>
+                            </h4>
+                            <p style="font-size:0.82rem; color:#6B7280; margin-bottom:0.8rem;">
+                                ดู Account ID & สร้าง API Token พร้อมสิทธิ์ <code>Workers AI: Read</code> จาก <a href="https://dash.cloudflare.com/" target="_blank" style="color:var(--honda-red); text-decoration:underline;">Cloudflare Dashboard</a>
+                            </p>
+                            <div class="form-group">
+                                <label class="form-label">Cloudflare Account ID</label>
+                                <input type="text" id="cfAccountId" class="form-control" placeholder="เช่น a1b2c3d4e5f6..." autocomplete="off">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Cloudflare API Token (Workers AI Permission)</label>
+                                <div style="position:relative;">
+                                    <input type="password" id="cfApiToken" class="form-control" placeholder="Bearer Token..." autocomplete="off">
+                                    <button type="button" class="btn-toggle-key" onclick="toggleKeyVisibility('cfApiToken')" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:#6B7280;">👁️</button>
+                                </div>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label class="form-label">AI Model</label>
+                                <select id="cfModel" class="form-control">
+                                    <option value="@cf/meta/llama-3.1-8b-instruct">@cf/meta/llama-3.1-8b-instruct (แนะนำ - เก่ง & ฟรีโควต้า)</option>
+                                    <option value="@cf/meta/llama-3-8b-instruct">@cf/meta/llama-3-8b-instruct</option>
+                                    <option value="@cf/mistral/mistral-7b-instruct-v0.2">@cf/mistral/mistral-7b-instruct-v0.2</option>
+                                    <option value="@cf/qwen/qwen1.5-14b-chat-awq">@cf/qwen/qwen1.5-14b-chat-awq</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- System Prompt / Custom Instructions -->
+                        <div class="form-group">
+                            <label class="form-label" style="font-weight:600;">คำสั่งระบบ / บุคลิกภาพของบอต (System Prompt) <span style="font-weight:normal; font-size:0.82rem; color:#6B7280;">(หากเว้นว่างจะใช้ค่ามาตรฐานของฮอนด้า)</span></label>
+                            <textarea id="botSystemPrompt" class="form-control" rows="4" placeholder="เช่น คุณคือผู้ช่วยอะไหล่แท้ HONDA..."></textarea>
+                            <small style="color:var(--honda-text-muted); display:block; margin-top:0.3rem;">
+                                💡 ระบบจะทำการดึงข้อมูลแคตตาล็อกอะไหล่ปัจจุบันในฐานข้อมูล (ชื่อ, รหัส, ราคา) ส่งให้ AI ประมวลผลร่วมด้วยอัตโนมัติ
+                            </small>
+                        </div>
+
+                        <div style="display:flex; justify-content:flex-end; gap:0.75rem; margin-top:1.5rem;">
+                            <button type="button" class="btn-secondary" id="btnTestBotApi">🧪 ทดสอบการตอบของบอต</button>
+                            <button type="submit" class="btn-primary" style="padding:0.6rem 1.4rem;">💾 บันทึกการตั้งค่า</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modals -->
+
+    <!-- Login Modal -->
+    <div class="modal-overlay" id="loginModal">
+        <div class="modal-container" style="max-width: 420px;">
+            <div class="modal-header">
+                <div class="modal-title">🔐 เข้าสู่ระบบ <span class="brand-honda">HONDA</span></div>
+                <button class="modal-close">&times;</button>
+            </div>
+            <form id="loginForm">
+                <div class="modal-body">
+                    <div class="google-auth-section">
+                        <button type="button" class="google-auth-fallback" id="googleSignInFallback">
+                            <span class="google-mark" aria-hidden="true">G</span>
+                            <span>เข้าสู่ระบบด้วย Google</span>
+                        </button>
+                        <div id="googleSignInButton" data-client-id="<?= htmlspecialchars(GOOGLE_CLIENT_ID, ENT_QUOTES, 'UTF-8') ?>"></div>
+                        <div class="auth-divider"><span>หรือเข้าสู่ระบบด้วยเบอร์โทรศัพท์</span></div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">เบอร์โทรศัพท์ (Username)</label>
+                        <input type="tel" id="loginPhone" class="form-control" placeholder="เช่น 0812345678" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">รหัสผ่าน (สำหรับ Admin หรือบัญชีมี Password)</label>
+                        <input type="password" id="loginPassword" class="form-control" placeholder="ระบุรหัสผ่าน (ถ้ามี)">
+                    </div>
+                    <div style="font-size:0.8rem; color:var(--honda-text-muted); margin-bottom:1rem; background:#F9FAFB; padding:0.6rem; border-radius:6px;">
+                        💡 <strong>ทดสอบระบบ:</strong><br>
+                        - บัญชีลูกค้า: เบอร์โทร <code>0812345678</code><br>
+                        - บัญชี Admin: เบอร์โทร <code>0800000000</code> รหัสผ่าน <code>admin123</code>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" id="btnShowRegister">สมัครสมาชิกใหม่</button>
+                    <button type="submit" class="btn-primary">เข้าสู่ระบบ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div class="modal-overlay" id="registerModal">
+        <div class="modal-container" style="max-width: 500px;">
+            <div class="modal-header">
+                <div class="modal-title">📝 สมัครสมาชิก <span class="brand-honda">HONDA</span> GENUINE</div>
+                <button class="modal-close">&times;</button>
+            </div>
+            <form id="registerForm">
+                <div class="modal-body">
+                    <div style="display:flex; gap:0.8rem;">
+                        <div class="form-group" style="flex:1;">
+                            <label class="form-label">ชื่อ</label>
+                            <input type="text" id="regFname" class="form-control" required placeholder="สมชาย">
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label class="form-label">นามสกุล</label>
+                            <input type="text" id="regLname" class="form-control" required placeholder="ใจดี">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">เบอร์โทรศัพท์ (ใช้เป็น Username ในการเข้าสู่ระบบ)</label>
+                        <input type="tel" id="regPhone" class="form-control" required placeholder="08XXXXXXXX" pattern="[0-9]{9,10}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">ที่อยู่จัดส่งสินค้า</label>
+                        <textarea id="regAddress" class="form-control" required placeholder="ระบุบ้านเลขที่ ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด รหัสไปรษณีย์"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">ตั้งรหัสผ่าน (Optional)</label>
+                        <input type="password" id="regPassword" class="form-control" placeholder="กำหนดรหัสผ่านเพื่อความปลอดภัย">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" id="btnShowLogin">มีบัญชีแล้ว? เข้าสู่ระบบ</button>
+                    <button type="submit" class="btn-primary">ยืนยันสมัครสมาชิก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Complete Google Account Profile Modal -->
+    <div class="modal-overlay" id="profileModal">
+        <div class="modal-container" style="max-width: 500px;">
+            <div class="modal-header">
+                <div class="modal-title">ข้อมูลติดต่อและจัดส่ง</div>
+            </div>
+            <form id="profileForm">
+                <div class="modal-body">
+                    <p style="margin-bottom:1rem; color:var(--honda-text-muted);">กรุณาระบุเบอร์โทรศัพท์และที่อยู่ เพื่อใช้ติดต่อและจัดส่งสินค้า</p>
+                    <div class="form-group">
+                        <label class="form-label" for="profilePhone">เบอร์โทรศัพท์</label>
+                        <input type="tel" id="profilePhone" class="form-control" required pattern="[0-9]{9,10}" maxlength="10" placeholder="08XXXXXXXX">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="profileAddress">ที่อยู่จัดส่งสินค้า</label>
+                        <textarea id="profileAddress" class="form-control" required placeholder="บ้านเลขที่ ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด รหัสไปรษณีย์"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn-primary">บันทึกข้อมูล</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Shopping Cart Modal -->
+    <div class="modal-overlay" id="cartModal">
+        <div class="modal-container" style="max-width: 680px;">
+            <div class="modal-header">
+                <div class="modal-title">🛒 ตะกร้าสินค้าและคำนวณราคา <span class="brand-honda">HONDA</span></div>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="cartModalBody">
+                <!-- Dynamic Cart Items -->
+            </div>
+            <div class="modal-footer" id="cartModalFooter">
+                <!-- Dynamic Cart Footer -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Receipt / Checkout Modal -->
+    <div class="modal-overlay" id="receiptModal">
+        <div class="modal-container" style="max-width: 750px;">
+            <div class="modal-header no-print">
+                <div class="modal-title">📄 ใบเสร็จรับเงิน / Receipt Summary</div>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Printable Receipt Content -->
+                <div id="printableReceipt"></div>
+            </div>
+            <div class="modal-footer no-print">
+                <button class="btn-secondary btn-modal-close">ปิดหน้าต่าง</button>
+                <button class="btn-primary" id="btnPrintReceipt" style="display:flex; align-items:center; gap:0.5rem;">
+                    🖨️ พิมพ์ใบเสร็จรับเงิน
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Part Edit/Add Modal -->
+    <div class="modal-overlay" id="partModal">
+        <div class="modal-container" style="max-width: 520px;">
+            <div class="modal-header">
+                <div class="modal-title" id="partModalTitle">⚙️ จัดการรายการอะไหล่</div>
+                <button class="modal-close">&times;</button>
+            </div>
+            <form id="partForm">
+                <div class="modal-body">
+                    <input type="hidden" id="partId">
+                    <div class="form-group">
+                        <label class="form-label">หมวดหมู่อะไหล่</label>
+                        <select id="partCategory" class="form-control" required>
+                            <option value="car">🚗 อะไหล่รถยนต์ (Car)</option>
+                            <option value="motorcycle">🛵 อะไหล่รถจักรยานยนต์ (Motorcycle)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">รหัสอะไหล่ (Part No.)</label>
+                        <input type="text" id="partNo" class="form-control" placeholder="เช่น 08234-2MA-K1NT1" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">ชื่อรายการอะไหล่</label>
+                        <input type="text" id="partName" class="form-control" placeholder="เช่น น้ำมันเครื่องแท้ HONDA Protech Gold 4T" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">ราคาขาย (บาท)</label>
+                        <input type="number" step="0.01" id="partPrice" class="form-control" placeholder="145.00" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">อัปโหลดรูปภาพใหม่ (เลือกไฟล์)</label>
+                        <input type="file" id="partImageFile" class="form-control" accept="image/*">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">หรือ ระบุ URL รูปภาพ</label>
+                        <input type="text" id="partImageUrl" class="form-control" value="assets/images/default_part.jpg">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary btn-modal-close">ยกเลิก</button>
+                    <button type="submit" class="btn-primary">บันทึกข้อมูลอะไหล่</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div style="max-width: 1280px; margin: 0 auto; padding: 0 1rem;">
+            <p><strong><span class="brand-honda">HONDA</span> GENUINE PARTS</strong> &copy; <?= date('Y') ?> - ระบบบริหารจัดการและสั่งซื้ออะไหล่แท้มาตรฐานฮอนด้า (รถยนต์ & รถจักรยานยนต์)</p>
+            <p style="font-size:0.8rem; color:#6B7280; margin-top:0.3rem;">พัฒนาด้วย PHP, PDO MySQL (Prepared Statements), HTML5, CSS3 และ JavaScript</p>
+        </div>
+    </footer>
+
+    <!-- Floating Chatbot Widget Button & Chat Window -->
+    <div class="chatbot-widget-container" id="chatbotWidgetContainer">
+        <!-- Floating Trigger Button -->
+        <button class="chatbot-fab" id="chatbotFab" aria-label="เปิดแชทบอต AI ปรึกษาอะไหล่ฮอนด้า">
+            <span class="chatbot-fab-icon">🤖</span>
+            <span class="chatbot-fab-pulse"></span>
+            <span class="chatbot-fab-badge" id="chatbotFabBadge">ปรึกษาอะไหล่ AI</span>
+        </button>
+
+        <!-- Chat Window Box -->
+        <div class="chat-window" id="chatWindow" style="display:none;">
+            <!-- Chat Header -->
+            <div class="chat-header">
+                <div class="chat-header-info">
+                    <div class="chat-avatar">🤖</div>
+                    <div>
+                        <div class="chat-title">
+                            <span class="brand-honda">HONDA</span> AI Assistant
+                        </div>
+                        <div class="chat-status">
+                            <span class="status-dot"></span>
+                            <span id="chatProviderIndicator">ออนไลน์ (Gemini AI)</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="chat-header-actions">
+                    <button class="chat-btn-action" id="btnClearChat" title="ล้างประวัติการสนทนา">🗑️</button>
+                    <button class="chat-btn-action" id="btnCloseChat" title="ปิดหน้าต่างแชท">✖</button>
+                </div>
+            </div>
+
+            <!-- Quick Questions / FAQ Chips -->
+            <div class="chat-quick-chips" id="chatQuickChips">
+                <button class="chip-btn" data-query="แนะนำน้ำมันเครื่องสำหรับ Honda City หน่อยครับ">🚗 น้ำมันเครื่องรถยนต์</button>
+                <button class="chip-btn" data-query="มีผ้าเบรกหน้าของ Wave110i ไหม ราคาเท่าไหร่">🛵 ผ้าเบรก Wave110i</button>
+                <button class="chip-btn" data-query="มีโปรโมชั่นอะไรบ้างตอนนี้">🎁 โปรโมชั่นสมาชิก</button>
+                <button class="chip-btn" data-query="รอบเช็คระยะต้องเปลี่ยนหัวเทียนเมื่อไหร่">🔧 รอบเปลี่ยนหัวเทียน</button>
+            </div>
+
+            <!-- Messages Body -->
+            <div class="chat-messages" id="chatMessages">
+                <div class="chat-msg chat-msg-bot">
+                    <div class="msg-bubble">
+                        สวัสดีครับ! ผมคือ <strong>ฮอนด้าบอต</strong> ผู้ช่วยอัจฉริยะประจำศูนย์ <span class="brand-honda">HONDA</span> GENUINE PARTS ยินดีให้บริการครับ 🚗🛵
+                        <br><br>
+                        สอบถามข้อมูลอะไหล่แท้, เช็ครหัสสินค้า, ตรวจสอบราคา หรือขอคำแนะนำการบำรุงรักษารถได้เลยครับ!
+                    </div>
+                    <span class="msg-time">เมื่อสักครู่</span>
+                </div>
+            </div>
+
+            <!-- Chat Input Footer -->
+            <form class="chat-input-bar" id="chatInputForm">
+                <input type="text" id="chatInputText" class="chat-input" placeholder="พิมพ์คำถามเกี่ยวกับอะไหล่ฮอนด้าที่นี่..." autocomplete="off">
+                <button type="submit" class="chat-send-btn" id="btnSendChat" aria-label="ส่งข้อความ">
+                    <span>➤</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- App JavaScript -->
+    <script src="assets/js/app.js"></script>
+</body>
+</html>

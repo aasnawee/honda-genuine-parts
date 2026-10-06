@@ -1,0 +1,19 @@
+{
+  "name": "honda-genuine-parts",
+  "version": "1.0.0",
+  "description": "HONDA GENUINE PARTS on Cloudflare Pages and D1 Database",
+  "main": "index.html",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler pages dev . --d1 DB=honda-db",
+    "d1:init-local": "wrangler d1 execute honda-db --local --file=./schema.sql",
+    "d1:init-remote": "wrangler d1 execute honda-db --remote --file=./schema.sql",
+    "deploy": "wrangler pages deploy ."
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3"
+  },
+  "devDependencies": {
+    "wrangler": "^4.143.0"
+  }
+}
