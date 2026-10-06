@@ -62,10 +62,13 @@ CREATE TABLE `order_items` (
 
 -- Seed Data: Users
 -- Admin: 0800000000 / admin123
+-- Admin Google Users: seree999@gmail.com, asnawee211248@gmail.com
 -- Somchai: 0812345678 / 123456 (order_count = 9 for test promotion)
 INSERT INTO `users` (`id`, `fname`, `lname`, `phone`, `email`, `google_id`, `address`, `role`, `order_count`, `password`) VALUES
-(1, 'Admin', 'Honda', '0800000000', NULL, NULL, 'ศูนย์บริการ HONDA GENUINE PARTS กรุงเทพฯ', 'admin', 0, '$2a$10$wN9vj9M.sN3T2O6J6A5y.eWf7oK1J6H4F3D2S1A0Z9X8C7V6B5N4M'),
-(2, 'สมชาย', 'ใจดี', '0812345678', NULL, NULL, '123/45 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพมหานคร 10110', 'customer', 9, '$2a$10$wN9vj9M.sN3T2O6J6A5y.eWf7oK1J6H4F3D2S1A0Z9X8C7V6B5N4M');
+(1, 'Admin', 'Honda', '0800000000', 'admin@honda.com', NULL, 'ศูนย์บริการ HONDA GENUINE PARTS กรุงเทพฯ', 'admin', 0, '$2a$10$wN9vj9M.sN3T2O6J6A5y.eWf7oK1J6H4F3D2S1A0Z9X8C7V6B5N4M'),
+(2, 'สมชาย', 'ใจดี', '0812345678', NULL, NULL, '123/45 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพมหานคร 10110', 'customer', 9, '$2a$10$wN9vj9M.sN3T2O6J6A5y.eWf7oK1J6H4F3D2S1A0Z9X8C7V6B5N4M'),
+(3, 'Seree', 'Admin', '0899999999', 'seree999@gmail.com', NULL, 'ศูนย์บริหารจัดการ HONDA GENUINE PARTS', 'admin', 0, NULL),
+(4, 'Asnawee', 'Admin', '0888888888', 'asnawee211248@gmail.com', NULL, 'ศูนย์บริหารจัดการ HONDA GENUINE PARTS', 'admin', 0, NULL);
 
 -- Seed Data: Car Spare Parts (อะไหล่รถยนต์)
 INSERT INTO `parts` (`id`, `part_no`, `name`, `price`, `category`, `image_url`) VALUES

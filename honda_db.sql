@@ -63,9 +63,11 @@ CREATE TABLE `order_items` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Seed Data: Users
-INSERT INTO `users` (`fname`, `lname`, `phone`, `address`, `role`, `order_count`, `password`) VALUES
-('Admin', 'Honda', '0800000000', 'ศูนย์บริการ HONDA GENUINE PARTS กรุงเทพฯ', 'admin', 0, '$2y$10$wT3WfJc9wX.eYh6Z4P8/2uK7yPz9qV8bL1K6N0e5J4g3H2f1e0d9c'),
-('สมชาย', 'ใจดี', '0812345678', '123/45 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพมหานคร 10110', 'customer', 9, '$2y$10$e8c1Q0Fz.4PzY6X9vW0eUu3A8J2K1L0M9N8O7P6Q5R4S3T2U1V0W');
+INSERT INTO `users` (`fname`, `lname`, `phone`, `email`, `address`, `role`, `order_count`, `password`) VALUES
+('Admin', 'Honda', '0800000000', 'admin@honda.com', 'ศูนย์บริการ HONDA GENUINE PARTS กรุงเทพฯ', 'admin', 0, '$2y$10$wT3WfJc9wX.eYh6Z4P8/2uK7yPz9qV8bL1K6N0e5J4g3H2f1e0d9c'),
+('สมชาย', 'ใจดี', '0812345678', NULL, '123/45 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพมหานคร 10110', 'customer', 9, '$2y$10$e8c1Q0Fz.4PzY6X9vW0eUu3A8J2K1L0M9N8O7P6Q5R4S3T2U1V0W'),
+('Seree', 'Admin', '0899999999', 'seree999@gmail.com', 'ศูนย์บริหารจัดการ HONDA GENUINE PARTS', 'admin', 0, NULL),
+('Asnawee', 'Admin', '0888888888', 'asnawee211248@gmail.com', 'ศูนย์บริหารจัดการ HONDA GENUINE PARTS', 'admin', 0, NULL);
 
 -- Seed Data: Car Spare Parts (อะไหล่รถยนต์)
 INSERT INTO `parts` (`part_no`, `name`, `price`, `category`, `image_url`) VALUES

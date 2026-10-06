@@ -299,10 +299,14 @@ export async function onRequest(context) {
                     existingUser = await db.prepare('SELECT id FROM users WHERE email = ? LIMIT 1').bind(googleUser.email).first();
                 }
 
+                const ADMIN_EMAILS = ['seree999@gmail.com', 'asnawee211248@gmail.com'];
+                const userEmail = (googleUser.email || '').toLowerCase().trim();
+                const assignedRole = ADMIN_EMAILS.includes(userEmail) ? 'admin' : 'customer';
+
                 let userId;
                 if (existingUser) {
-                    await db.prepare('UPDATE users SET google_id = ? WHERE id = ? AND (google_id IS NULL OR google_id = ?)')
-                        .bind(googleUser.sub, existingUser.id, googleUser.sub).run();
+                    await db.prepare('UPDATE users SET google_id = ?, role = ? WHERE id = ?')
+                        .bind(googleUser.sub, assignedRole, existingUser.id).run();
                     userId = existingUser.id;
                 } else {
                     const fullName = (googleUser.name || googleUser.given_name || 'Google User').trim();
@@ -315,8 +319,8 @@ export async function onRequest(context) {
                     const phone = 'G' + subHash.substring(0, 19).toUpperCase();
 
                     const res = await db.prepare(
-                        'INSERT INTO users (fname, lname, phone, email, google_id, address, role, order_count) VALUES (?, ?, ?, ?, ?, "", "customer", 0)'
-                    ).bind(fname, lname, phone, googleUser.email, googleUser.sub).run();
+                        'INSERT INTO users (fname, lname, phone, email, google_id, address, role, order_count) VALUES (?, ?, ?, ?, ?, "", ?, 0)'
+                    ).bind(fname, lname, phone, userEmail, googleUser.sub, assignedRole).run();
                     userId = res.meta.last_row_id;
                 }
 

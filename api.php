@@ -160,24 +160,21 @@ switch ($action) {
             $existingUser = $stmt->fetch();
         }
 
+        $adminEmails = ['seree999@gmail.com', 'asnawee211248@gmail.com'];
+        $userEmail = strtolower(trim($googleUser['email'] ?? ''));
+        $assignedRole = in_array($userEmail, $adminEmails) ? 'admin' : 'customer';
+
         if ($existingUser) {
-            $stmt = $pdo->prepare("UPDATE users SET google_id = ? WHERE id = ? AND (google_id IS NULL OR google_id = ?)");
-            $stmt->execute([$googleUser['sub'], $existingUser['id'], $googleUser['sub']]);
-            if ($stmt->rowCount() === 0) {
-                $stmt = $pdo->prepare("SELECT google_id FROM users WHERE id = ?");
-                $stmt->execute([$existingUser['id']]);
-                if ($stmt->fetchColumn() !== $googleUser['sub']) {
-                    sendResponse('error', [], 'อีเมลนี้เชื่อมกับบัญชี Google อื่นอยู่แล้ว');
-                }
-            }
+            $stmt = $pdo->prepare("UPDATE users SET google_id = ?, role = ? WHERE id = ?");
+            $stmt->execute([$googleUser['sub'], $assignedRole, $existingUser['id']]);
             $userId = $existingUser['id'];
         } else {
             $nameParts = preg_split('/\\s+/u', trim($googleUser['name'] ?? $googleUser['given_name'] ?? 'Google User'), 2);
             $fname = $nameParts[0] !== '' ? $nameParts[0] : 'Google User';
             $lname = $nameParts[1] ?? '';
             $phone = 'G' . strtoupper(substr(hash('sha256', $googleUser['sub']), 0, 19));
-            $stmt = $pdo->prepare("INSERT INTO users (fname, lname, phone, email, google_id, address, role, order_count) VALUES (?, ?, ?, ?, ?, '', 'customer', 0)");
-            $stmt->execute([$fname, $lname, $phone, $googleUser['email'], $googleUser['sub']]);
+            $stmt = $pdo->prepare("INSERT INTO users (fname, lname, phone, email, google_id, address, role, order_count) VALUES (?, ?, ?, ?, ?, '', ?, 0)");
+            $stmt->execute([$fname, $lname, $phone, $userEmail, $googleUser['sub'], $assignedRole]);
             $userId = $pdo->lastInsertId();
         }
 

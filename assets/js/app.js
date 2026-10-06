@@ -51,9 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('navAdmin')?.addEventListener('click', (e) => {
             e.preventDefault();
             if (!App.user || App.user.role !== 'admin') {
-                document.getElementById('loginPhone').value = '0800000000';
-                document.getElementById('loginPassword').value = 'admin123';
-                openModal('loginModal');
+                showToast('เข้าถึงได้เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น', 'error');
                 return;
             }
             switchTab('admin');
@@ -429,14 +427,18 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             document.getElementById('btnLogout')?.addEventListener('click', handleLogout);
 
-            const navAdmin = document.getElementById('navAdmin');
-            if (navAdmin) {
-                navAdmin.style.display = 'flex';
+            const adminNavLi = document.getElementById('adminNavLi');
+            if (adminNavLi) {
+                adminNavLi.style.display = (App.user.role === 'admin') ? 'block' : 'none';
             }
         } else {
             userContainer.innerHTML = `
                 <button class="btn-auth" onclick="document.getElementById('navCatalog').click(); document.getElementById('loginPhone').value=''; openModal('loginModal');">เข้าสู่ระบบ / สมัครสมาชิก</button>
             `;
+            const adminNavLi = document.getElementById('adminNavLi');
+            if (adminNavLi) {
+                adminNavLi.style.display = 'none';
+            }
         }
 
         updateHeroPromotionBanner();

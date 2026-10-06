@@ -29,7 +29,7 @@ $pdo = getDBConnection();
             <ul class="nav-links">
                 <li><a href="#" class="nav-link active" id="navCatalog">📦 แคตตาล็อกอะไหล่</a></li>
                 <li><a href="#" class="nav-link" id="navHistory">📜 ประวัติการสั่งซื้อ</a></li>
-                <li><a href="#" class="nav-link" id="navAdmin">🔑 ระบบแอดมิน</a></li>
+                <li id="adminNavLi" style="display:none;"><a href="#" class="nav-link" id="navAdmin">🔑 ระบบแอดมิน</a></li>
                 <li>
                     <a href="#" class="nav-link" id="cartNavBtn">
                         🛒 ตะกร้าสินค้า
