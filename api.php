@@ -718,7 +718,7 @@ switch ($action) {
                 ]
             ];
 
-            $candidateModels = array_unique([$model, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro']);
+            $candidateModels = array_unique([$model, 'gemini-1.5-flash-latest', 'gemini-1.5-pro-latest', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']);
             $lastError = '';
             $botReply = '';
 
@@ -745,6 +745,50 @@ switch ($action) {
                     }
                 } else {
                     $lastError = $curlErr ? $curlErr : "HTTP {$httpCode}: {$response}";
+                }
+            }
+
+            // Dynamic Model Discovery from Google API if candidate names fail
+            if (empty($botReply)) {
+                $listUrl = "https://generativelanguage.googleapis.com/v1beta/models?key={$apiKey}";
+                $chList = curl_init($listUrl);
+                curl_setopt_array($chList, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_TIMEOUT => 20
+                ]);
+                $listResp = curl_exec($chList);
+                $listCode = curl_getinfo($chList, CURLINFO_HTTP_CODE);
+                curl_close($chList);
+
+                if ($listCode === 200) {
+                    $listData = json_decode($listResp, true);
+                    $models = $listData['models'] ?? [];
+                    foreach ($models as $mod) {
+                        $methods = $mod['supportedGenerationMethods'] ?? [];
+                        if (in_array('generateContent', $methods)) {
+                            $liveMod = str_replace('models/', '', $mod['name']);
+                            $geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$liveMod}:generateContent?key={$apiKey}";
+                            $chTry = curl_init($geminiUrl);
+                            curl_setopt_array($chTry, [
+                                CURLOPT_RETURNTRANSFER => true,
+                                CURLOPT_POST => true,
+                                CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+                                CURLOPT_POSTFIELDS => json_encode($payload),
+                                CURLOPT_TIMEOUT => 30
+                            ]);
+                            $respTry = curl_exec($chTry);
+                            $codeTry = curl_getinfo($chTry, CURLINFO_HTTP_CODE);
+                            curl_close($chTry);
+
+                            if ($codeTry === 200) {
+                                $geminiData = json_decode($respTry, true);
+                                $botReply = $geminiData['candidates'][0]['content']['parts'][0]['text'] ?? '';
+                                if (!empty($botReply)) {
+                                    break;
+                                }
+                            }
+                        }
+                    }
                 }
             }
 

@@ -847,34 +847,76 @@ ${partsSummary}
                     });
 
                     // Candidate models to try in order (ensures backward & forward compatibility)
-                    const candidateModels = [model, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+                    const candidateModels = [model, 'gemini-1.5-flash-latest', 'gemini-1.5-pro-latest', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'];
                     const uniqueModels = [...new Set(candidateModels)];
 
                     let geminiRes = null;
                     let lastErr = '';
 
+                    // 1. Try candidate list first
                     for (const m of uniqueModels) {
-                        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`;
-                        const res = await fetch(geminiUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                system_instruction: {
-                                    parts: [{ text: systemInstruction }]
-                                },
-                                contents,
-                                generationConfig: {
-                                    temperature: 0.7,
-                                    maxOutputTokens: 1000
-                                }
-                            })
-                        });
+                        try {
+                            const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`;
+                            const res = await fetch(geminiUrl, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    system_instruction: {
+                                        parts: [{ text: systemInstruction }]
+                                    },
+                                    contents,
+                                    generationConfig: {
+                                        temperature: 0.7,
+                                        maxOutputTokens: 1000
+                                    }
+                                })
+                            });
 
-                        if (res.ok) {
-                            geminiRes = res;
-                            break;
-                        } else {
-                            lastErr = await res.text();
+                            if (res.ok) {
+                                geminiRes = res;
+                                break;
+                            } else {
+                                lastErr = await res.text();
+                            }
+                        } catch (e) {
+                            lastErr = e.message;
+                        }
+                    }
+
+                    // 2. If all predefined models 404, dynamically query available models for this specific API key
+                    if (!geminiRes) {
+                        try {
+                            const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+                            if (listRes.ok) {
+                                const listData = await listRes.json();
+                                const available = (listData.models || [])
+                                    .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
+                                    .map(m => m.name.replace('models/', ''));
+
+                                for (const liveModel of available) {
+                                    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${liveModel}:generateContent?key=${apiKey}`;
+                                    const res = await fetch(geminiUrl, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            system_instruction: {
+                                                parts: [{ text: systemInstruction }]
+                                            },
+                                            contents,
+                                            generationConfig: {
+                                                temperature: 0.7,
+                                                maxOutputTokens: 1000
+                                            }
+                                        })
+                                    });
+                                    if (res.ok) {
+                                        geminiRes = res;
+                                        break;
+                                    }
+                                }
+                            }
+                        } catch (errList) {
+                            console.error('ListModels error:', errList);
                         }
                     }
 
