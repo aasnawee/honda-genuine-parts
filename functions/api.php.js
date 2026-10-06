@@ -171,6 +171,23 @@ export async function onRequest(context) {
         return sendResponse('error', [], 'Database binding (DB) is not configured.');
     }
 
+    // Auto-Ensure Master Admin Users in D1 (seree999@gmail.com & asnawee211248@gmail.com)
+    try {
+        await db.prepare(`
+            INSERT OR IGNORE INTO users (id, fname, lname, phone, email, address, role, order_count)
+            VALUES 
+            (3, 'Seree', 'Admin', '0899999999', 'seree999@gmail.com', 'ศูนย์บริหารจัดการ HONDA GENUINE PARTS', 'admin', 0),
+            (4, 'Asnawee', 'Admin', '0888888888', 'asnawee211248@gmail.com', 'ศูนย์บริหารจัดการ HONDA GENUINE PARTS', 'admin', 0)
+        `).run();
+        // Force upgrade role to admin if already exists with customer role
+        await db.prepare(`
+            UPDATE users SET role = 'admin' 
+            WHERE email IN ('seree999@gmail.com', 'asnawee211248@gmail.com')
+        `).run();
+    } catch (e) {
+        // Ignore if schema not fully ready yet
+    }
+
     let action = url.searchParams.get('action') || '';
     let body = {};
     if (request.method === 'POST') {
