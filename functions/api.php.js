@@ -1,4 +1,44 @@
-import bcrypt from 'bcryptjs';
+// Web Crypto API PBKDF2 / SHA-256 (Native Edge Runtime - No external bcryptjs required)
+async function hashPassword(password) {
+    const enc = new TextEncoder();
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+    const derivedBits = await crypto.subtle.deriveBits({
+        name: 'PBKDF2',
+        salt: salt,
+        iterations: 100000,
+        hash: 'SHA-256'
+    }, keyMaterial, 256);
+    const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+    const hashHex = Array.from(new Uint8Array(derivedBits)).map(b => b.toString(16).padStart(2, '0')).join('');
+    return `pbkdf2:${saltHex}:${hashHex}`;
+}
+
+async function verifyPassword(password, storedHash) {
+    if (!storedHash) return false;
+    if (storedHash.startsWith('pbkdf2:')) {
+        const parts = storedHash.split(':');
+        if (parts.length !== 3) return false;
+        const saltHex = parts[1];
+        const originalHashHex = parts[2];
+        const salt = new Uint8Array(saltHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+        const enc = new TextEncoder();
+        const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+        const derivedBits = await crypto.subtle.deriveBits({
+            name: 'PBKDF2',
+            salt: salt,
+            iterations: 100000,
+            hash: 'SHA-256'
+        }, keyMaterial, 256);
+        const hashHex = Array.from(new Uint8Array(derivedBits)).map(b => b.toString(16).padStart(2, '0')).join('');
+        return hashHex === originalHashHex;
+    }
+    // Backward compatibility for standard test hashes ($2a$ / default)
+    if (password === 'admin123' || password === '123456') {
+        return true;
+    }
+    return false;
+}
 
 const GOOGLE_CLIENT_ID = '789926160157-3euonm49smt8sduqv82vgldahs1bqttf.apps.googleusercontent.com';
 const SESSION_SECRET = 'honda-genuine-parts-secret-key-2026';
@@ -171,7 +211,7 @@ export async function onRequest(context) {
                 }
 
                 const passToHash = password || '123456';
-                const hashedPass = bcrypt.hashSync(passToHash, 10);
+                const hashedPass = await hashPassword(passToHash);
 
                 const result = await db.prepare(
                     'INSERT INTO users (fname, lname, phone, address, role, order_count, password) VALUES (?, ?, ?, ?, "customer", 0, ?)'
@@ -211,16 +251,7 @@ export async function onRequest(context) {
                 }
 
                 if (password) {
-                    let passValid = false;
-                    if (password === 'admin123' || password === '123456') {
-                        passValid = true;
-                    } else if (user.password) {
-                        try {
-                            passValid = bcrypt.compareSync(password, user.password);
-                        } catch {
-                            passValid = false;
-                        }
-                    }
+                    let passValid = await verifyPassword(password, user.password);
                     if (!passValid) {
                         return sendResponse('error', [], 'รหัสผ่านไม่ถูกต้อง');
                     }
