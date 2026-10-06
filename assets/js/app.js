@@ -1394,7 +1394,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const payload = {
             ai_provider: document.getElementById('botAiProvider')?.value || 'gemini',
             gemini_api_key: document.getElementById('geminiApiKey')?.value.trim() || '',
-            gemini_model: document.getElementById('geminiModel')?.value || 'gemini-1.5-flash',
+            gemini_model: document.getElementById('geminiModel')?.value || 'gemini-2.5-flash',
             openai_api_key: document.getElementById('openaiApiKey')?.value.trim() || '',
             openai_model: document.getElementById('openaiModel')?.value || 'gpt-4o-mini',
             cf_account_id: document.getElementById('cfAccountId')?.value.trim() || '',
