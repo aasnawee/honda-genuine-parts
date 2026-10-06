@@ -245,9 +245,10 @@ $pdo = getDBConnection();
                             <div class="form-group" style="margin-bottom:0;">
                                 <label class="form-label">โมเดล (Model Name)</label>
                                 <select id="geminiModel" class="form-control">
-                                    <option value="gemini-1.5-flash">gemini-1.5-flash (เร็ว ตอบสนองไว แนะนำ)</option>
+                                    <option value="gemini-2.5-flash">gemini-2.5-flash (โมเดลใหม่ล่าสุด เร็ว ฉลาด แนะนำ)</option>
+                                    <option value="gemini-2.0-flash">gemini-2.0-flash (เวอร์ชัน 2.0 มาตรฐาน)</option>
+                                    <option value="gemini-1.5-flash">gemini-1.5-flash (เวอร์ชัน 1.5)</option>
                                     <option value="gemini-1.5-pro">gemini-1.5-pro (ตอบละเอียด วิเคราะห์ลึก)</option>
-                                    <option value="gemini-2.0-flash-exp">gemini-2.0-flash-exp (เวอร์ชันใหม่)</option>
                                 </select>
                             </div>
                         </div>

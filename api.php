@@ -693,7 +693,10 @@ switch ($action) {
             if (empty($apiKey)) {
                 sendResponse('error', [], 'ยังไม่ได้ตั้งค่า Google Gemini API Key ในระบบ กรุณาแจ้งผู้ดูแลระบบให้ตั้งค่าที่เมนูแอดมิน');
             }
-            $model = !empty($settings['gemini_model']) ? $settings['gemini_model'] : 'gemini-1.5-flash';
+            $model = !empty($settings['gemini_model']) ? trim($settings['gemini_model']) : 'gemini-2.5-flash';
+            if (strpos($model, 'models/') === 0) {
+                $model = substr($model, 7);
+            }
 
             $contents = [];
             $slicedHistory = array_slice($history, -6);
@@ -704,7 +707,6 @@ switch ($action) {
             }
             $contents[] = ['role' => 'user', 'parts' => [['text' => $message]]];
 
-            $geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
             $payload = [
                 'system_instruction' => [
                     'parts' => [['text' => $systemInstruction]]
@@ -716,28 +718,39 @@ switch ($action) {
                 ]
             ];
 
-            $ch = curl_init($geminiUrl);
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_POST => true,
-                CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-                CURLOPT_POSTFIELDS => json_encode($payload),
-                CURLOPT_TIMEOUT => 30
-            ]);
-            $response = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $curlErr = curl_error($ch);
-            curl_close($ch);
+            $candidateModels = array_unique([$model, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro']);
+            $lastError = '';
+            $botReply = '';
 
-            if ($curlErr) {
-                sendResponse('error', [], 'Curl Error: ' . $curlErr);
-            }
-            $geminiData = json_decode($response, true);
-            if ($httpCode !== 200) {
-                sendResponse('error', [], 'Gemini API Error (' . $httpCode . '): ' . $response);
+            foreach ($candidateModels as $m) {
+                $geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$m}:generateContent?key={$apiKey}";
+                $ch = curl_init($geminiUrl);
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_POST => true,
+                    CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+                    CURLOPT_POSTFIELDS => json_encode($payload),
+                    CURLOPT_TIMEOUT => 30
+                ]);
+                $response = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $curlErr = curl_error($ch);
+                curl_close($ch);
+
+                if (!$curlErr && $httpCode === 200) {
+                    $geminiData = json_decode($response, true);
+                    $botReply = $geminiData['candidates'][0]['content']['parts'][0]['text'] ?? '';
+                    if (!empty($botReply)) {
+                        break;
+                    }
+                } else {
+                    $lastError = $curlErr ? $curlErr : "HTTP {$httpCode}: {$response}";
+                }
             }
 
-            $botReply = $geminiData['candidates'][0]['content']['parts'][0]['text'] ?? 'ขออภัยครับ ไม่สามารถสร้างคำตอบได้ในขณะนี้';
+            if (empty($botReply)) {
+                sendResponse('error', [], "Gemini API Error: {$lastError}");
+            }
 
         } elseif ($provider === 'openai') {
             $apiKey = $settings['openai_api_key'] ?? '';

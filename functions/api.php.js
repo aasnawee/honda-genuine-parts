@@ -829,11 +829,12 @@ ${partsSummary}
                     if (!apiKey) {
                         return sendResponse('error', [], 'ยังไม่ได้ตั้งค่า Google Gemini API Key ในระบบ กรุณาแจ้งผู้ดูแลระบบให้ตั้งค่าที่เมนูแอดมิน');
                     }
-                    const model = settings.gemini_model || 'gemini-1.5-flash';
+                    let model = (settings.gemini_model || 'gemini-1.5-flash').trim();
+                    // Auto-fix if old or missing prefix
+                    if (model.startsWith('models/')) model = model.replace('models/', '');
 
                     // Convert history to Gemini contents format
                     const contents = [];
-                    // Add system prompt context as first user turn if systemInstruction isn't supported on all endpoints, but Gemini 1.5 supports systemInstruction
                     for (const h of history.slice(-6)) {
                         contents.push({
                             role: h.role === 'user' ? 'user' : 'model',
@@ -845,25 +846,40 @@ ${partsSummary}
                         parts: [{ text: message }]
                     });
 
-                    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-                    const geminiRes = await fetch(geminiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            system_instruction: {
-                                parts: [{ text: systemInstruction }]
-                            },
-                            contents,
-                            generationConfig: {
-                                temperature: 0.7,
-                                maxOutputTokens: 1000
-                            }
-                        })
-                    });
+                    // Candidate models to try in order (ensures backward & forward compatibility)
+                    const candidateModels = [model, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+                    const uniqueModels = [...new Set(candidateModels)];
 
-                    if (!geminiRes.ok) {
-                        const errData = await geminiRes.text();
-                        return sendResponse('error', [], `Gemini API Error (${geminiRes.status}): ${errData}`);
+                    let geminiRes = null;
+                    let lastErr = '';
+
+                    for (const m of uniqueModels) {
+                        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`;
+                        const res = await fetch(geminiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                system_instruction: {
+                                    parts: [{ text: systemInstruction }]
+                                },
+                                contents,
+                                generationConfig: {
+                                    temperature: 0.7,
+                                    maxOutputTokens: 1000
+                                }
+                            })
+                        });
+
+                        if (res.ok) {
+                            geminiRes = res;
+                            break;
+                        } else {
+                            lastErr = await res.text();
+                        }
+                    }
+
+                    if (!geminiRes) {
+                        return sendResponse('error', [], `Gemini API Error: ${lastErr}`);
                     }
 
                     const geminiData = await geminiRes.json();
